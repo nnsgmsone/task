@@ -20,13 +20,17 @@ type TaskOp[T any] interface {
 	Close() error
 	// Run when nil or error is returned,
 	// 	the op will end and the whole task will be automatically ended
-	Run() (T, error)
+	Run(T, T, T) (T, error)
+
+	IsEnd(T) bool
 
 	encoding.BinaryMarshaler
 	encoding.BinaryUnmarshaler
 }
 
 type SubTask[T any] interface {
+	Run() error
+	Close() error
 	//  AddBlocking: blocking task means that the task will be blocked by other tasks,
 	// 		blocking signal may be a useful information the the task must be consumed
 	AddBlocking(blocking SubTask[T]) error
@@ -38,13 +42,18 @@ type SubTask[T any] interface {
 	// 	AddConsumers: add consumers of the subtask,
 	//  	if empty means no task needs to consume the message of the task
 	AddConsumers(consumers ...SubTask[T]) error
+
+	encoding.BinaryMarshaler
+	encoding.BinaryUnmarshaler
 }
 
 type task[T any] struct {
+	subTasks []*subTask[T]
 }
 
 type subTask[T any] struct {
 	id   int
 	addr string
+	t    *task[T]
 	op   TaskOp[T]
 }
